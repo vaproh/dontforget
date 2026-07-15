@@ -11,6 +11,23 @@ encryption, XDG-compliant storage, and CLI/TUI-based configuration.
 > It is a quick personal memory-dump tool. Reminders and encryption are optional
 > and per-note. It is **not** a calendar, task manager, or full notes application.
 
+## 📦 Install
+
+From [PyPI](https://pypi.org/project/better-dontforget/):
+
+```bash
+pip install better-dontforget
+better-dontforget config set provider gemini
+better-dontforget config set api_key "$GEMINI_API_KEY"
+```
+
+Or, for development from source:
+
+```bash
+uv sync
+better-dontforget "anything"
+```
+
 ## ✨ Features
 
 * **⚡ Zero-friction capture:** `better-dontforget "anything"`. Works offline; AI
