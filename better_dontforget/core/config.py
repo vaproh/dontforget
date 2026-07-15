@@ -23,6 +23,7 @@ DEFAULTS: dict[str, Any] = {
     "api_key": "",
     "base_url": "",
     "notifications_enabled": True,
+    "dark": True,
 }
 
 PROVIDER_KEY_ENV = {
@@ -41,6 +42,7 @@ class Config:
     api_key: str = ""
     base_url: str = ""
     notifications_enabled: bool = True
+    dark: bool = True
 
     @classmethod
     def load(cls, path: Path | None = None) -> Config:
@@ -56,6 +58,7 @@ class Config:
             api_key=merged.get("api_key", "") or "",
             base_url=merged.get("base_url", "") or "",
             notifications_enabled=bool(merged.get("notifications_enabled", True)),
+            dark=bool(merged.get("dark", True)),
         )
 
     def save(self, path: Path | None = None) -> None:
@@ -79,6 +82,8 @@ class Config:
             self.provider = value
         elif key == "notifications_enabled":
             self.notifications_enabled = value.strip().lower() in ("1", "true", "yes", "on")
+        elif key == "dark":
+            self.dark = value.strip().lower() in ("1", "true", "yes", "on")
         elif key == "model":
             self.model = value
         elif key == "base_url":

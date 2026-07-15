@@ -5,21 +5,6 @@ from better_dontforget.core.config import Config
 from better_dontforget.core.providers import NullProvider, ProviderError
 
 
-def test_generate_tags_success(fake_provider):
-    tags = ai.generate_tags(fake_provider, "some thought")
-    assert tags == ["tag1", "tag2"]
-
-
-def test_generate_tags_failure_is_nonfatal(fake_provider):
-    fake_provider.fail = True
-    assert ai.generate_tags(fake_provider, "some thought") == []
-
-
-def test_generate_tags_malformed_json(fake_provider):
-    fake_provider.malformed = True
-    assert ai.generate_tags(fake_provider, "some thought") == []
-
-
 def test_extract_keywords(fake_provider):
     kws = ai.extract_keywords(fake_provider, "what did I owe?")
     assert kws == ["kw1", "kw2"]

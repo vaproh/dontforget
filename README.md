@@ -2,14 +2,40 @@
 
 > 🍴 **A fork of [`bugswriter/dontforget`](https://github.com/bugswriter/dontforget).**
 
+[![PyPI version](https://img.shields.io/pypi/v/better-dontforget.svg)](https://pypi.org/project/better-dontforget/)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+[![CI](https://github.com/vaproh/dontforget/actions/workflows/ci.yml/badge.svg)](https://github.com/vaproh/dontforget/actions/workflows/ci.yml)
+[![code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+
 **Better Dontforget** is a focused improvement of the upstream `dontforget`
 project: an AI-assisted terminal tool for quickly capturing and retrieving small
-personal memory dumps, enhanced with a better TUI, configurable AI providers,
-optional reminders with persistent desktop notifications, optional per-note
-encryption, XDG-compliant storage, and CLI/TUI-based configuration.
+personal memory dumps, with a better TUI, configurable AI providers, optional
+reminders with persistent desktop notifications, optional per-note encryption,
+XDG-compliant storage, and CLI/TUI-based configuration.
 
 > It is a quick personal memory-dump tool. Reminders and encryption are optional
 > and per-note. It is **not** a calendar, task manager, or full notes application.
+
+## ✨ Features
+
+* **⚡ Zero-friction capture:** `bdf "anything"`. Works offline; your input is
+  never lost even if the AI is unavailable.
+* **🔍 Search & AI recall:** full-text search (`search`) and AI-assisted answers
+  (`remind`) over your memories (SQLite + FTS5).
+* **🤖 Multiple AI providers:** Gemini (default), OpenAI-compatible (OpenAI,
+  OpenRouter, self-hosted), and Groq — behind a small provider abstraction.
+* **🖥️ Improved TUI:** live preview pane, in-place editing, encryption, reminders,
+  settings, and a dark/light theme toggle — all keyboard-driven.
+* **⏰ Optional reminders:** attach a due time via `--remind` or natural language
+  ("remind me tomorrow to …").
+* **🔔 Desktop notifications:** due reminders notify via `notify-send` (libnotify),
+  with a one-shot `notify-pending` command and a systemd user timer.
+* **📦 One-command notifier setup:** `bdf install-notifier` installs and enables
+  the systemd timer — no manual file copying.
+* **🔐 Optional per-note encryption:** authenticated (Fernet + PBKDF2),
+  passphrase-based, explicit per note; encrypted content is never sent to AI.
+* **📁 XDG-compliant storage** and **CLI/TUI configuration** (no manual file editing).
 
 ## 📦 Install
 
@@ -17,53 +43,62 @@ From [PyPI](https://pypi.org/project/better-dontforget/):
 
 ```bash
 pip install better-dontforget
-better-dontforget config set provider gemini
-better-dontforget config set api_key "$GEMINI_API_KEY"
+bdf config set provider gemini
+bdf config set api_key "$GEMINI_API_KEY"
+```
+
+Or with [`uv`](https://docs.astral.sh/uv/):
+
+```bash
+uv tool install better-dontforget
 ```
 
 Or, for development from source:
 
 ```bash
 uv sync
-better-dontforget "anything"
+bdf "anything"
 ```
 
-## ✨ Features
-
-* **⚡ Zero-friction capture:** `better-dontforget "anything"`. Works offline; AI
-  tagging is best-effort and never loses your input.
-* **🔍 Search & AI recall:** full-text search (`search`) and AI-assisted answers
-  (`remind`) over your memories (SQLite + FTS5).
-* **🤖 Multiple AI providers:** Gemini (default) and OpenAI-compatible
-  (OpenAI, OpenRouter, self-hosted), behind a small provider abstraction.
-* **🖥️ Improved TUI:** view/add/edit/delete/search, reminders, encryption, and
-  settings — all keyboard-driven.
-* **⏰ Optional reminders:** attach a due time to a note via `--remind` or natural
-  language ("remind me tomorrow to …").
-* **🔔 Desktop notifications:** due reminders notify via `notify-send` (libnotify),
-  with a one-shot `notify-pending` command and optional systemd user timer that
-  survives restarts.
-* **🔐 Optional per-note encryption:** authenticated (Fernet + PBKDF2), passphrase
-  based, explicit per note; encrypted content is never sent to AI.
-* **📁 XDG-compliant storage** and **CLI/TUI configuration** (no manual file editing).
+The short alias **`bdf`** is installed alongside `better-dontforget`.
 
 ## 🚀 Quick start
 
 ```bash
-uv sync
-better-dontforget config set provider gemini
-better-dontforget config set api_key "$GEMINI_API_KEY"
-
-better-dontforget "ratatui was that rust tui library"
-better-dontforget "remind me tomorrow 9am to check that library"
-better-dontforget search "rust tui"
-better-dontforget tui
+bdf "ratatui was that rust tui library"
+bdf "John recommended Severance"
+bdf "remind me tomorrow 9am to check that library"
+bdf search "rust tui"
+bdf remind "what rust tui library was recommended?"
+bdf list
+bdf tui
 ```
-
-The short alias **`bdf`** is also installed (`bdf "ratatui was that rust tui library"`, `bdf search "rust tui"`, …).
 
 See [`docs/docs.md`](docs/docs.md) for full usage and
 [`docs/config.md`](docs/config.md) for configuration.
+
+## ⏰ Reminders & notifications
+
+Attach a reminder to any note:
+
+```bash
+bdf --remind "tomorrow 9am" "check the library"
+```
+
+To have reminders delivered automatically (even while the app is closed), install
+the notifier with a single command:
+
+```bash
+bdf install-notifier      # installs + enables a systemd user timer
+bdf uninstall-notifier    # removes it
+```
+
+`bdf remind` (and capturing a note with `--remind`) will print a hint to run
+`bdf install-notifier` when the notifier isn't active, so you never silently lose
+a reminder.
+
+> Linux-only: desktop notifications and the systemd timer use libnotify / systemd
+> user units. Core capture/search/recall works everywhere Python does.
 
 ## 🛠️ Development
 
@@ -78,8 +113,8 @@ just type
 
 ## 📄 License
 
-GPL-3. Upstream `dontforget` by Suraj Kushwah; legacy server/client retained under
-`legacy/` for attribution.
+GPL-3.0. Upstream `dontforget` by Suraj Kushwah; legacy server/client retained
+under `legacy/` for attribution.
 
 ## 🙏 Credits
 
@@ -87,4 +122,3 @@ Better Dontforget is a fork of [`bugswriter/dontforget`](https://github.com/bugs
 by **Suraj Kushwah**. The original SQLite + FTS5 storage engine and AI-assisted
 capture/recall concept are carried over and extended; the legacy FastAPI
 server and bash `curl` client are preserved under `legacy/` for reference.
-

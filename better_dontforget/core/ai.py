@@ -1,8 +1,9 @@
 """High-level AI helpers built on top of the provider abstraction.
 
 These functions wrap provider calls with the prompts used by Better Dontforget
-and degrade gracefully: tagging/keyword/synthesis failures do not lose user
-input and never raise into the capture or search paths.
+and degrade gracefully: keyword/synthesis failures do not lose user input and
+never raise into the capture or search paths. (Automatic capture-time tagging
+was removed in 1.1.0; recall uses the note's raw text, not tags.)
 """
 
 from __future__ import annotations
@@ -10,28 +11,12 @@ from __future__ import annotations
 from .models import Note
 from .providers import AIProvider, ProviderError, _safe_json
 
-_TAG_PROMPT = (
-    "Generate up to 5 concise search tags for the following thought. "
-    "Prefer concepts over literal words. "
-    'Respond ONLY with JSON: {"tags": ["tag1", "tag2"]}'
-)
-
 _KEYWORD_PROMPT = (
     "Extract 3-5 keywords to search a personal memory database for the user's "
-    'question. Respond ONLY with JSON: {"keywords": ["word1", "word2"]}'
+    "question. Include specific words and named entities (names, places, amounts) "
+    "that are likely to appear verbatim in a stored note. "
+    'Respond ONLY with JSON: {"keywords": ["word1", "word2"]}'
 )
-
-
-def generate_tags(provider: AIProvider, text: str) -> list[str]:
-    try:
-        resp = provider.complete(_TAG_PROMPT, json_mode=True)
-        data = _safe_json(resp)
-        tags = data.get("tags", [])
-        if isinstance(tags, list):
-            return [str(t).strip() for t in tags if str(t).strip()]
-    except ProviderError:
-        pass
-    return []
 
 
 def extract_keywords(provider: AIProvider, question: str) -> list[str]:
@@ -56,8 +41,11 @@ def synthesize(provider: AIProvider, question: str, context: str) -> str:
         f"{context}\n\n"
         "Task:\n"
         "1. Answer the question using ONLY the memories above.\n"
-        "2. If asking for 'today' or 'last week', check the timestamps.\n"
-        "3. If no relevant memories found, say 'No relevant info found.'"
+        "2. Be concise: reply with a single short sentence or phrase. State "
+        "amounts, names, and dates directly.\n"
+        "3. Do NOT repeat the memories or their IDs back to the user.\n"
+        "4. If asking for 'today' or 'last week', check the timestamps.\n"
+        "5. If no relevant memories found, say 'No relevant info found.'"
     )
     try:
         return provider.complete(prompt)

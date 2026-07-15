@@ -60,6 +60,15 @@ set the provider, model, base URL, API key, and desktop-notification toggle, the
 | `api_key` | `""` | provider API key (or use env var) |
 | `base_url` | `""` | OpenAI-compatible base URL (optional; auto-set for `groq`) |
 | `notifications_enabled` | `true` | `true` / `false` |
+| `dark` | `true` | `true` / `false` (TUI theme; toggle with `t`) |
+
+The `dark` setting controls the TUI color theme. Toggle it in the TUI with `t`, or
+from the CLI:
+
+```bash
+better-dontforget config set dark false   # switch to the light theme
+better-dontforget config reset dark       # revert to the default (dark)
+```
 
 ## AI provider configuration
 

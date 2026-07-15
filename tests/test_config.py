@@ -6,6 +6,7 @@ def test_defaults():
     cfg = Config()
     assert cfg.provider == "gemini"
     assert cfg.notifications_enabled is True
+    assert cfg.dark is True
     assert cfg.api_key == ""
 
 
@@ -15,8 +16,12 @@ def test_set_and_reset(xdg_tmp):
     assert cfg.provider == "openai"
     cfg.set("notifications_enabled", "false")
     assert cfg.notifications_enabled is False
+    cfg.set("dark", "false")
+    assert cfg.dark is False
     cfg.reset("provider")
     assert cfg.provider == "gemini"
+    cfg.reset("dark")
+    assert cfg.dark is True
 
 
 def test_invalid_provider_rejected(xdg_tmp):

@@ -13,11 +13,13 @@ import getpass
 import os
 import sys
 from datetime import datetime
+from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
 
 from .core import db as dbmod
+from .core import systemd_install
 from .core.app import capture_note, query_memory, search_memory
 from .core.config import Config, describe_secret
 from .core.paths import config_path
@@ -42,6 +44,8 @@ KNOWN_SUBCOMMANDS = {
     "models",
     "notify-pending",
     "notify",
+    "install-notifier",
+    "uninstall-notifier",
     "version",
     "help",
 }
@@ -57,10 +61,30 @@ def _provider(config: Config):
 
 def _print_note_row(note) -> None:
     reminder = note.reminder_at or ""
-    tag = f" [{note.ai_tags}]" if note.ai_tags else ""
     enc = " 🔒" if note.encrypted else ""
     rem = f" ⏰{reminder}" if reminder else ""
-    console.print(f"[dim]#{note.id}[/dim] {note.display_text}{tag}{enc}{rem}")
+    console.print(f"[dim]#{note.id}[/dim] {note.display_text}{enc}{rem}")
+
+
+def _warn_notifier_if_inactive(config) -> None:
+    """Print a hint to install/start the notifier when reminders can't fire."""
+    if not getattr(config, "notifications_enabled", True):
+        return
+    try:
+        state = systemd_install.notifier_status()
+    except Exception:
+        return
+    if state == systemd_install.NotifierState.NOT_INSTALLED:
+        console.print(
+            "[yellow]ℹ Reminders won't fire until the notifier is active. "
+            "Set it up:[/yellow] [cyan]bdf install-notifier[/cyan]"
+        )
+    elif state == systemd_install.NotifierState.INSTALLED_INACTIVE:
+        console.print(
+            "[yellow]ℹ The reminder timer is installed but not running. "
+            "Start it:[/yellow] [cyan]systemctl --user enable --now "
+            "better-dontforget-notify.timer[/cyan]"
+        )
 
 
 def cmd_capture(argv: list[str]) -> int:
@@ -137,9 +161,18 @@ def cmd_capture(argv: list[str]) -> int:
         console.print(f"[yellow]Tags:[/yellow] {tags}")
     if reminder_dt:
         console.print(f"[cyan]⏰ Reminder set for[/cyan] {reminder_dt}")
+        _warn_notifier_if_inactive(config)
     if encrypt:
         console.print("[cyan]🔒 Encrypted note.[/cyan]")
     return 0
+
+
+def cmd_install_notifier() -> int:
+    return systemd_install.install_notifier()
+
+
+def cmd_uninstall_notifier() -> int:
+    return systemd_install.uninstall_notifier()
 
 
 def cmd_remind(rest: list[str]) -> int:
@@ -149,6 +182,7 @@ def cmd_remind(rest: list[str]) -> int:
         return 1
     config = _config()
     provider = _provider(config)
+    _warn_notifier_if_inactive(config)
     conn = dbmod.open_db()
     try:
         rows, answer = query_memory(conn, provider, question)
@@ -156,9 +190,10 @@ def cmd_remind(rest: list[str]) -> int:
         dbmod.close_db(conn)
 
     if answer:
-        console.print(f"\n[green]{answer}[/green]\n")
-        console.print("[blue]--------------------------------[/blue]")
-        console.print(f"[yellow]📊 {len(rows)} records considered[/yellow]\n")
+        console.print(f"\n[green]{answer}[/green]")
+        if rows:
+            refs = ", ".join(f"#{n.id}" for n in rows)
+            console.print(f"[dim]↳ from {refs}[/dim]\n")
     elif rows:
         console.print("[yellow]AI unavailable; showing matches:[/yellow]")
         for note in rows:
@@ -275,6 +310,7 @@ def _config_show() -> int:
     table.add_row("api_key", describe_secret(config))
     table.add_row("base_url", config.resolved_base_url() or "(default)")
     table.add_row("notifications_enabled", str(config.notifications_enabled))
+    table.add_row("dark", str(config.dark))
     table.add_row("config_file", str(config_path()))
     console.print(table)
     console.print(
@@ -324,21 +360,23 @@ def cmd_models() -> int:
     return 0
 
 
-def _print_help() -> None:
+def _print_help(prog: str = "better-dontforget") -> None:
     console.print(
-        """[bold]Better Dontforget[/bold] — quick personal memory dumps
+        f"""[bold]Better Dontforget[/bold] — quick personal memory dumps
 
-[green]better-dontforget "anything"[/green]            capture a quick note
-[green]better-dontforget "text" --encrypt[/green]      capture an encrypted note
-[green]better-dontforget "text" --remind "tomorrow 9am"[/green]  attach a reminder
-[green]better-dontforget remind "question"[/green]     AI-assisted recall
-[green]better-dontforget search "query"[/green]        full-text search
-[green]better-dontforget list[/green]                  list recent notes
-[green]better-dontforget delete <id>[/green]           delete a note
-[green]better-dontforget config show|set|reset[/green] manage configuration
-[green]better-dontforget models[/green]              list models for the current provider
-[green]better-dontforget notify-pending[/green]        deliver due reminders
-[green]better-dontforget tui[/green]                   launch the TUI
+[green]{prog} "anything"[/green]            capture a quick note
+[green]{prog} "text" --encrypt[/green]      capture an encrypted note
+[green]{prog} "text" --remind "tomorrow 9am"[/green]  attach a reminder
+[green]{prog} remind "question"[/green]     AI-assisted recall
+[green]{prog} search "query"[/green]        full-text search
+[green]{prog} list[/green]                  list recent notes
+[green]{prog} delete <id>[/green]           delete a note
+[green]{prog} config show|set|reset[/green] manage configuration
+[green]{prog} models[/green]              list models for the current provider
+[green]{prog} notify-pending[/green]        deliver due reminders
+[green]{prog} install-notifier[/green]      install + enable the systemd reminder timer
+[green]{prog} uninstall-notifier[/green]    remove the systemd reminder timer
+[green]{prog} tui[/green]                   launch the TUI
 
 Run with no arguments to open the TUI.
 """
@@ -347,16 +385,34 @@ Run with no arguments to open the TUI.
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
+    prog = Path(sys.argv[0]).name
+
+    # Color control: explicit --color / --no-color flags, else the standard
+    # NO_COLOR env var disables color. Without either, colors are automatic.
+    force_color: bool | None = None
+    if "--no-color" in argv:
+        force_color = False
+        argv.remove("--no-color")
+    if "--color" in argv:
+        force_color = True
+        argv.remove("--color")
+    if force_color is None and os.environ.get("NO_COLOR") is not None:
+        force_color = False
+    if force_color is True:
+        globals()["console"] = Console(force_terminal=True)
+    elif force_color is False:
+        globals()["console"] = Console(no_color=True)
+
     if not argv:
         return _launch_tui()
     cmd = argv[0]
     if cmd in ("-h", "--help", "help"):
-        _print_help()
+        _print_help(prog)
         return 0
     if cmd in ("-v", "--version", "version"):
         from . import __version__
 
-        console.print(f"better-dontforget {__version__}")
+        console.print(f"{prog} {__version__}")
         return 0
     if cmd in KNOWN_SUBCOMMANDS:
         rest = argv[1:]
@@ -376,6 +432,10 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_models()
         if cmd in ("notify-pending", "notify"):
             return cmd_notify_pending()
+        if cmd in ("install-notifier", "uninstall-notifier"):
+            if cmd == "install-notifier":
+                return cmd_install_notifier()
+            return cmd_uninstall_notifier()
     # Not a known subcommand -> treat as capture text.
     return cmd_capture(argv)
 

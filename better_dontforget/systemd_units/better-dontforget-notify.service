@@ -1,0 +1,10 @@
+[Unit]
+Description=Better Dontforget pending reminder notifications
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=__BINARY__ notify-pending
+
+[Install]
+WantedBy=default.target

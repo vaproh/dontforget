@@ -72,9 +72,8 @@ The lowest-friction operation is a bare positional argument:
 better-dontforget "wifi password is written behind the router"
 ```
 
-* Capture is local and synchronous.
-* AI tagging is best-effort: if no provider is configured or the provider fails,
-  the note is still saved (possibly without tags). Your input is never lost.
+* Capture is local and synchronous — no AI call is made on capture.
+* Your input is never lost; the note is saved even if no provider is configured.
 * Run `better-dontforget` with no arguments to open the **TUI**.
 * If you pass no text, your `$EDITOR` (default `vim`) opens for a longer note.
 
@@ -85,6 +84,16 @@ better-dontforget --encrypt "private thing I want to remember"
 better-dontforget --remind "tomorrow 9am" "check the library"
 better-dontforget --encrypt --passphrase "hunter2" "secret backup code"
 ```
+
+Color control (global):
+
+```bash
+better-dontforget --no-color "note text"   # disable ANSI colors
+better-dontforget --color "note text"      # force colors (e.g. when piped)
+```
+
+Without either flag, colors are automatic (on a TTY). The standard `NO_COLOR`
+environment variable also disables color.
 
 Encrypted notes are **never** sent to an external AI provider.
 
@@ -101,29 +110,36 @@ synthesizes an answer. If AI is unavailable it falls back to listing raw matches
 
 ## TUI usage
 
-Launch with `better-dontforget tui` (or with no arguments). The main screen lists
-your notes and supports:
+Launch with `better-dontforget tui` (or with no arguments). The main screen shows
+your notes in a table on the left and a live preview of the highlighted note on
+the right.
 
 | Key | Action |
 | --- | --- |
 | `a` | Add a note |
 | `x` | Add an **encrypted** note |
-| `/` (search box) | Type a query and press Enter to filter |
+| `e` | **Edit** the selected note (text, reminder) |
+| `/` | Focus the search box (type, then Enter to filter; press a list key to return) |
 | `enter` | View / unlock a note (detail screen) |
 | `d` | Delete the selected note |
 | `r` | Set or change the selected note's reminder |
 | `s` | Open Settings |
+| `t` | Toggle dark / light theme |
 | `q` | Quit |
 
-The detail screen lets you unlock an encrypted note (enter passphrase), set/clear
-a reminder, and delete the note. The settings screen lets you choose the AI
-provider, model, base URL, API key, and toggle desktop notifications — all stored
-in your XDG config (no manual file editing required).
+The detail screen lets you unlock an encrypted note (enter passphrase), **edit** it,
+set/clear a reminder, and delete the note. The settings screen lets you choose the
+AI provider, model, base URL, API key, toggle desktop notifications, and switch the
+theme — all stored in your XDG config (no manual file editing required). The theme
+preference (`dark`) can also be set from the CLI with
+`better-dontforget config set dark false`.
 
 ## AI behavior & providers
 
-On capture, the selected provider generates a few search tags. On `remind`, the
-provider extracts keywords and synthesizes an answer from retrieved memories.
+On capture, **no AI call is made** — notes are saved locally as-is (automatic
+tagging was removed because it added little value and search/recall use the raw
+text, not tags). On `remind`, the provider extracts keywords and synthesizes an
+answer from retrieved memories.
 
 Supported providers (set with `config set provider <name>`):
 
@@ -179,17 +195,39 @@ recurrence, so volume is naturally bounded and there are no notification storms.
 
 ### systemd user integration (Linux)
 
-Install the provided user unit and timer so reminders are checked automatically,
-including after boot/login:
+Install the notifier with a single command — it copies the unit files, detects
+your installed `better-dontforget`/`bdf` binary, and enables the timer:
 
 ```bash
+bdf install-notifier       # install + enable the systemd user timer
+```
+
+`remind` (and capturing a note with `--remind`) will print a hint to run
+`bdf install-notifier` when the notifier isn't active, and a hint to start the
+timer when it's installed but not running — so you never silently lose a reminder.
+
+To remove it:
+
+```bash
+bdf uninstall-notifier
+```
+
+<details>
+<summary>Manual install (advanced)</summary>
+
+If you prefer to set it up by hand, the unit templates are bundled inside the
+installed package. Locate and copy them, then enable the timer:
+
+```bash
+UNIT_DIR=$(python -c "import better_dontforget,os;print(os.path.join(os.path.dirname(better_dontforget.__file__),'systemd_units'))")
 mkdir -p ~/.config/systemd/user
-cp packaging/better-dontforget-notify.service ~/.config/systemd/user/
-cp packaging/better-dontforget-notify.timer    ~/.config/systemd/user/
-# Edit the ExecStart path in the .service if your binary is elsewhere.
+cp "$UNIT_DIR/better-dontforget-notify.service" ~/.config/systemd/user/
+cp "$UNIT_DIR/better-dontforget-notify.timer"    ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now better-dontforget-notify.timer
 ```
+
+</details>
 
 Useful commands:
 
@@ -219,8 +257,9 @@ better-dontforget --encrypt "my secret"
 
 * **"No AI provider is configured"** — capture and search still work. Set an API
   key to enable tagging/recall, or ignore the message.
-* **Tags missing on a note** — AI tagging failed (bad key / network); the note was
-  still saved.
+* **`remind` returns "No relevant info found"** — recall searches your literal
+  question words plus AI-extracted keywords over the raw text; try rephrasing or
+  check with `search`.
 * **No notification appears** — `notify-send` (libnotify) must be installed and a
   desktop session active. Run `better-dontforget notify-pending` manually to test.
 * **Reminder not delivered** — if no notification backend is available, the

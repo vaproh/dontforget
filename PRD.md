@@ -23,7 +23,8 @@ synthesize answers on query, and requires a long-running server plus a secret ke
 Better Dontforget **preserves**:
 
 * the SQLite + FTS5 storage engine and its data (with backward-compatible migration);
-* the quick-capture + AI-assisted-tagging workflow;
+  * the quick-capture workflow (capture is fully local; automatic tagging was
+    removed in 1.1.0);
 * the AI-assisted retrieval / synthesis workflow;
 * the Gemini provider (kept as a first-class provider).
 
@@ -66,7 +67,7 @@ remind me tomorrow to check that library
 ## Existing upstream behavior being preserved
 
 * SQLite + FTS5 storage and schema (`memories` + `memories_idx`).
-* AI-assisted capture tags.
+* AI-assisted retrieval / synthesis (capture-time tagging was dropped in 1.1.0).
 * AI-assisted query synthesis over retrieved memories.
 * The `remember` / `remind` / `delete` conceptual operations.
 
@@ -93,6 +94,8 @@ remind me tomorrow to check that library
 * Desktop notifications via the platform mechanism (`notify-send`/libnotify).
 * One-shot `notify-pending` command + optional systemd user timer/service for
   reliable processing while the interactive app is closed and after restarts.
+* `bdf install-notifier` command that installs and enables the systemd user timer
+  automatically (1.1.0); `remind` warns when the notifier is inactive.
 * Optional per-note encryption (authenticated, passphrase-derived key).
 * XDG-compliant config/data paths.
 * CLI `config` subcommand and TUI settings; no manual file editing required.
@@ -106,20 +109,21 @@ remind me tomorrow to check that library
 * Vector databases, embeddings, semantic-search/RAG pipelines.
 * Recurring reminder engines / complex recurrence rules (v1).
 * Custom daemons, IPC, RPC, socket servers, or service frameworks.
+* Automatic AI tagging (removed in 1.1.0; search/recall use the raw note text).
 * Telegram/ntfy/email/SMS/mobile push/webhook notification transports (v1).
 
 ## Quick-note behavior
 
 * `better-dontforget "anything"` captures a note instantly.
-* Capture is synchronous and local; AI tagging is best-effort and failures are
-  non-fatal (note is still saved, possibly without tags).
+* Capture is synchronous and fully local — no AI call is made on capture. Your
+  input is never lost.
 * A normal note never requires a reminder or encryption.
 * Optional flags: `--encrypt` (encrypted note), `--remind "<when>"` (attach
   reminder). Encrypted notes are not sent to AI.
 
 ## AI behavior
 
-* On capture: AI generates search tags (best-effort).
+* On capture: no AI is invoked; notes are stored as-is.
 * On query (`remind`/`ask`): AI extracts keywords, FTS retrieves candidates, AI
   synthesizes an answer. If AI is unavailable, falls back to raw FTS listing.
 * On `search`: direct FTS listing (no AI).
@@ -214,6 +218,24 @@ on delivery; config + data in XDG; no secret leakage.
 * Existing upstream `memory.db` data is preserved via migration.
 * Upstream behavior (tags, FTS retrieval) preserved.
 * Legacy `mem`/server retained under `legacy/` for attribution only.
+
+## v1.1.0 changes (post-1.0.0)
+
+These changes shipped after the initial 1.0.0 release and are reflected in the
+documentation and `ROADMAP.md` Phase 10:
+
+* **Notifier installer:** `bdf install-notifier` / `bdf uninstall-notifier` install
+  and enable (or remove) the systemd user timer, auto-detecting the installed
+  binary path. Replaces the manual `cp` of unit files.
+* **Remind status check:** `remind`/`ask`/`q` (and capturing a note with
+  `--remind`) print a hint to install or start the notifier when reminders cannot
+  fire.
+* **Dropped automatic tagging:** capture no longer calls the AI for tags; the
+  `ai_tags` column is retained for backward compatibility but is no longer
+  populated. Search and recall always operate on the raw note text.
+* **TUI/CLI polish:** live preview pane, in-place note editing, dark/light theme
+  toggle (`t`), `--color`/`--no-color` + `NO_COLOR` support, and `help`/`config
+  show` reflecting the invoked alias (`bdf` vs `better-dontforget`).
 
 ## Acceptance criteria
 

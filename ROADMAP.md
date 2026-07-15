@@ -82,3 +82,48 @@ PRD for the justified architecture change).
 Phase 2 (paths/config) → Phase 3 (db/ai) → Phase 4 (crypto) and Phase 5
 (reminders/notifications) can proceed after Phase 3 → Phase 6 (TUI) after 2–5 →
 Phase 7 docs → Phase 8 audit.
+
+## Phase 9: TUI polish & CLI color control  [x]
+- [x] TUI: live preview pane for the highlighted note (full text, tags, reminder).
+- [x] TUI: edit existing notes (`e`) for plaintext + encrypted (unlock → re-encrypt).
+- [x] TUI: dark/light theme toggle (`t`) persisted via `config dark`.
+- [x] TUI: keyboard nav — table focused on launch, `/` focuses search, refocus
+      after search so single-key bindings work (fixes search box stealing focus).
+- [x] CLI: `--color` / `--no-color` flags + `NO_COLOR` env support; `config show`
+      and `help` reflect the invoked alias (`bdf` vs `better-dontforget`).
+- [x] Tests: config `dark`, CLI color flag, TUI edit/theme/preview.
+- [x] `just check` green (64 tests).
+
+## Phase 10: Notifier installer, remind status check, drop auto-tagging  [~]
+- Target release: **v1.1.0** (bundles Phase 9 polish + this phase; unreleased).
+- Goal: make the notifier trivially installable; warn when reminders cannot fire;
+  remove low-value automatic AI tagging while preserving the schema column.
+- Tasks:
+  - [x] `core/systemd_install.py` — `install_notifier()` / `uninstall_notifier()` /
+       `notifier_status()`. Bundle unit templates as package data under
+       `better_dontforget/systemd_units/` (moved from `packaging/`).
+  - [x] `cli.py` — `install-notifier` / `uninstall-notifier` subcommands; auto-detect
+       the real `better-dontforget`/`bdf` binary path; degrade gracefully when
+       `systemctl` is absent (write units + print manual steps).
+  - [x] `cli.py` — `remind`/`ask`/`q` (and capture with `--remind`) call
+       `notifier_status()` and print an install/enable hint when the notifier is
+       not active.
+  - [x] Drop automatic tagging: stop calling `ai.generate_tags` on capture; remove
+       `_TAG_PROMPT` / `generate_tags`; strip tags from CLI/TUI output. Keep the
+       `ai_tags` DB column (no migration needed).
+  - [x] `Justfile` — `install-notifier` recipe wrapping `uv run better-dontforget
+       install-notifier`.
+  - [x] Docs: replace manual `cp` systemd steps with `bdf install-notifier`;
+       document the remind status hint; document dropped tagging.
+  - [x] Tests: `notifier_status` states (running/installed_inactive/not_installed/
+       unsupported); `write_units` placeholder rewrite; `remind` + capture print the
+       install hint when inactive.
+- Acceptance: `bdf install-notifier` installs + enables the timer; `remind` warns
+  when inactive; tagging no longer generated; `just check` green.
+
+## Release lineage
+- **v1.0.0** — first public release: CLI+TUI, multi-provider AI, optional reminders
+  + notifications, optional encryption, XDG config. (Phase 0–8.)
+- **v1.1.0** (planned) — TUI polish + color control (Phase 9) **and** notifier
+  installer command, remind status check, and dropped auto-tagging (Phase 10).
+

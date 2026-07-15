@@ -41,3 +41,7 @@ check:
     uv run mypy better_dontforget
     uv run pytest
     uv build
+
+# Install and enable the systemd user notifier.
+install-notifier:
+    uv run better-dontforget install-notifier

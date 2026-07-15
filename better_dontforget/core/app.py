@@ -27,9 +27,9 @@ def capture_note(
 ) -> tuple[int, str, datetime | None]:
     """Store a quick note. Returns ``(note_id, tags, reminder_at)``.
 
-    Capture is local and synchronous. AI tagging is best-effort: if the provider
-    is unavailable or fails, the note is still saved (without tags). Encrypted
-    notes are never sent to AI.
+    Capture is local and synchronous and makes no AI call. Encrypted notes are
+    never sent to AI. Automatic tagging was removed in 1.1.0; ``tags`` is always
+    an empty string (the ``ai_tags`` column is retained for compatibility).
     """
     clean_text, parsed_dt = reminder_parser.parse_reminder(text, now)
     if reminder_at is None:
@@ -49,24 +49,21 @@ def capture_note(
         )
         return note_id, "", reminder_at
 
-    tags: list[str] = []
-    if not isinstance(provider, NullProvider):
-        tags = ai.generate_tags(provider, clean_text)
-    tags_str = ", ".join(tags)
-    note_id = db.add_note(conn, raw_text=clean_text, ai_tags=tags_str, reminder_at=reminder_at)
-    return note_id, tags_str, reminder_at
+    note_id = db.add_note(conn, raw_text=clean_text, ai_tags="", reminder_at=reminder_at)
+    return note_id, "", reminder_at
 
 
 def query_memory(conn, provider: AIProvider, question: str) -> tuple[list[Note], str | None]:
     """AI-assisted retrieval. Returns ``(rows, synthesized_answer)``.
 
-    Falls back to raw FTS listing when AI is unavailable.
+    The question's own words are always searched as a baseline so recall does not
+    depend entirely on the AI's keyword extraction (a weak model may drop the
+    exact terms that appear in a note). AI keywords, when available, augment the
+    literal terms.
     """
-    keywords = (
-        ai.extract_keywords(provider, question)
-        if not isinstance(provider, NullProvider)
-        else question.split()
-    )
+    keywords = question.split()
+    if not isinstance(provider, NullProvider):
+        keywords = ai.extract_keywords(provider, question) + keywords
     rows = db.search(conn, keywords)
     answer: str | None = None
     if rows and not isinstance(provider, NullProvider):
