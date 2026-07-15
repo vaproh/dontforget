@@ -1,0 +1,12 @@
+[Unit]
+Description=Better Dontforget pending reminder notifications
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+# Adjust the path to the installed `better-dontforget` executable if different.
+# After `uv tool install better-dontforget` it is typically at ~/.local/bin/better-dontforget.
+ExecStart=%h/.local/bin/better-dontforget notify-pending
+
+[Install]
+WantedBy=default.target
