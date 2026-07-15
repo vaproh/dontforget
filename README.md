@@ -74,6 +74,8 @@ bdf list
 bdf tui
 ```
 
+Run `bdf --help` for the full list of commands and options.
+
 See [`docs/docs.md`](docs/docs.md) for full usage and
 [`docs/config.md`](docs/config.md) for configuration.
 

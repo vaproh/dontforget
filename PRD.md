@@ -237,6 +237,12 @@ documentation and `ROADMAP.md` Phase 10:
   toggle (`t`), `--color`/`--no-color` + `NO_COLOR` support, and `help`/`config
   show` reflecting the invoked alias (`bdf` vs `better-dontforget`).
 
+## v1.1.1 changes (post-1.1.0)
+
+* **Proper `--help` output:** `bdf --help` now prints a structured usage screen
+  (USAGE / OPTIONS / COMMANDS) that documents every flag and subcommand (with
+  aliases) at a glance, instead of a flat list of example commands.
+
 ## Acceptance criteria
 
 1. Quick capture works offline and without AI.

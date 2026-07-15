@@ -97,6 +97,19 @@ environment variable also disables color.
 
 Encrypted notes are **never** sent to an external AI provider.
 
+## Command reference
+
+For the authoritative, always-up-to-date list of options and subcommands, run:
+
+```bash
+bdf --help
+```
+
+It prints a structured screen with `USAGE`, an `OPTIONS` block (flags like
+`--encrypt`, `--remind`, `--color`/`--no-color`, `--passphrase`, `-v/--version`),
+and a `COMMANDS` block listing every subcommand together with its aliases
+(`remind`/`ask`/`q`, `search`/`find`, `list`/`ls`, `delete`/`del`/`rm`, …).
+
 ## Viewing & searching notes
 
 ```bash

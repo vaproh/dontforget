@@ -89,8 +89,8 @@ timer) so reminders are never silently lost.
 `notify-pending` is driven by a systemd **user** timer (`better-dontforget-notify.timer`)
 that runs a few minutes after boot and then every few minutes (`Persistent=true`
 catches runs missed while the machine was off). It is installed with a single
-command: `bdf install-notifier`. The unit templates currently live in `packaging/`
-and are bundled into the package as `better_dontforget/systemd_units/` in 1.1.0.
+command: `bdf install-notifier`. The unit templates live in the package as
+`better_dontforget/systemd_units/` (they were moved out of `packaging/` in 1.1.0).
 
 ## Golden rules
 
@@ -104,12 +104,52 @@ and are bundled into the package as `better_dontforget/systemd_units/` in 1.1.0.
 
 ## Workflow
 
-1. Inspect relevant code before editing.
+For **every** change (bug fix, feature, or polish), follow this same route so the
+repo never drifts out of sync:
+
+1. Inspect relevant code before editing (see "Read first").
 2. Implement the smallest coherent solution for the milestone in `ROADMAP.md`.
 3. Add/update tests for behavioral changes.
-4. Update affected docs alongside behavior changes.
-5. Run focused tests during development.
-6. Before declaring done: run the canonical quality gate.
+4. **Update `ROADMAP.md`** — add the task under the relevant phase (or a new
+   phase), mark `[~]` while in progress and `[x]` when complete.
+5. **Update affected docs in lockstep**: `docs/docs.md`, `docs/config.md`,
+   `README.md`, `PRD.md`, and `CHANGELOG.md` (add an entry under the version's
+   section). Every user-facing behavior change must be reflected here.
+6. Run focused tests during development, then run the canonical quality gate
+   (`just check`) and keep it green.
+7. Commit the change (see "Commit conventions"). **Do not** push a release or cut
+   a tag unless the user explicitly asks to ship.
+
+## Release workflow
+
+When the user asks to ship a version, run this exact sequence (do not skip steps
+and do not rely on the `release: published` repo event — it does not auto-trigger
+the publish workflow):
+
+1. Confirm `ROADMAP.md` tasks are marked `[x]` and docs/CHANGELOG are updated.
+2. Bump `version` in `pyproject.toml`.
+3. Set the date on the new `CHANGELOG.md` version heading (change `Unreleased`
+   to the release date).
+4. Run `just check` — must be green (fmt, lint, type, tests, build).
+5. Commit: `git commit -m "Release vX.Y.Z: <one-line summary>"` (see Commit
+   conventions).
+6. Tag: `git tag -a vX.Y.Z -m "Better Dontforget vX.Y.Z"`.
+7. Push: `git push origin master && git push origin vX.Y.Z`.
+8. Build artifacts: `just build` (writes `dist/*.whl` and `dist/*.tar.gz`).
+9. Create the GitHub release, attaching both artifacts:
+   `gh release create vX.Y.Z --title "Better Dontforget vX.Y.Z" --notes-file <(git log --oneline v<prev>..vX.Y.Z) dist/*.whl dist/*.tar.gz`
+10. Publish to PyPI via trusted publishing (no manual credentials):
+    `gh workflow run publish.yml -f target=pypi`.
+11. Verify: `gh release view vX.Y.Z` shows the assets, and
+    `https://pypi.org/pypi/better-dontforget/json` reports the new `version` as
+    `latest`.
+
+## Commit conventions
+
+* Keep commits focused and message subjects imperative ("add …", "fix …",
+  "release vX.Y.Z: …").
+* **Do NOT add a `Co-Authored-By` trailer** to commit messages.
+* Never commit secrets or real API keys.
 
 ## Quality gate
 

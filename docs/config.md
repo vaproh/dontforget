@@ -45,6 +45,9 @@ better-dontforget config set notifications_enabled true
 better-dontforget config reset provider  # reset a key to its default
 ```
 
+For the full list of commands and global options (including `--color` /
+`--no-color`), run `better-dontforget --help`.
+
 ## TUI settings
 
 Open the TUI (`better-dontforget tui`) and press `s`. The settings screen lets you

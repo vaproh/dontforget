@@ -94,8 +94,8 @@ Phase 7 docs → Phase 8 audit.
 - [x] Tests: config `dark`, CLI color flag, TUI edit/theme/preview.
 - [x] `just check` green (64 tests).
 
-## Phase 10: Notifier installer, remind status check, drop auto-tagging  [~]
-- Target release: **v1.1.0** (bundles Phase 9 polish + this phase; unreleased).
+## Phase 10: Notifier installer, remind status check, drop auto-tagging  [x]
+- Target release: **v1.1.0** (bundles Phase 9 polish + this phase).
 - Goal: make the notifier trivially installable; warn when reminders cannot fire;
   remove low-value automatic AI tagging while preserving the schema column.
 - Tasks:
@@ -121,9 +121,26 @@ Phase 7 docs → Phase 8 audit.
 - Acceptance: `bdf install-notifier` installs + enables the timer; `remind` warns
   when inactive; tagging no longer generated; `just check` green.
 
+## Phase 11: Proper `--help` usage screen  [x]
+- Target release: **v1.1.1**.
+- Goal: replace the flat list of example commands shown by `bdf --help` with a
+  structured usage screen (USAGE / OPTIONS / COMMANDS) that documents every flag
+  and subcommand (with aliases) at a glance.
+- Tasks:
+  - [x] `cli.py` — `_print_help` / `_help_rows` render a USAGE line, an OPTIONS
+        block (`--encrypt`, `--passphrase`, `--remind`, `--color`, `--no-color`,
+        `-h/--help`, `-v/--version`), and a COMMANDS block (every subcommand +
+        alias + one-line description).
+  - [x] Tests: `test_cli.py::test_help_is_proper_usage` asserts USAGE/OPTIONS/
+        COMMANDS sections and key commands are present.
+  - [x] Docs/PRD/README updated to point users at `bdf --help` for the full
+        command + option reference.
+- Acceptance: `bdf --help` is a proper reference screen; `just check` green.
+
 ## Release lineage
 - **v1.0.0** — first public release: CLI+TUI, multi-provider AI, optional reminders
   + notifications, optional encryption, XDG config. (Phase 0–8.)
-- **v1.1.0** (planned) — TUI polish + color control (Phase 9) **and** notifier
-  installer command, remind status check, and dropped auto-tagging (Phase 10).
+- **v1.1.0** — TUI polish + color control (Phase 9) **and** notifier installer
+  command, remind status check, and dropped auto-tagging (Phase 10).
+- **v1.1.1** — proper `--help` usage screen (Phase 11).
 
