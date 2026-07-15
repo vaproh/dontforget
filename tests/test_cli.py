@@ -112,3 +112,14 @@ def test_capture_reminder_warns_when_notifier_missing(xdg_tmp, capsys, monkeypat
     rc = cli.main(["--remind", "tomorrow 9am", "check the library"])
     assert rc == 0
     assert "install-notifier" in capsys.readouterr().out
+
+
+def test_help_is_proper_usage(capsys):
+    rc = cli.main(["--help"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "USAGE" in out
+    assert "OPTIONS" in out
+    assert "COMMANDS" in out
+    assert "install-notifier" in out
+    assert "tui" in out

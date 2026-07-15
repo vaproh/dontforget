@@ -360,27 +360,48 @@ def cmd_models() -> int:
     return 0
 
 
+def _help_rows(*rows: tuple[str, str]) -> None:
+    width = max(len(name) for name, _ in rows)
+    for name, desc in rows:
+        console.print(f"  [green]{name.ljust(width)}[/green]  {desc}")
+
+
 def _print_help(prog: str = "better-dontforget") -> None:
     console.print(
-        f"""[bold]Better Dontforget[/bold] — quick personal memory dumps
-
-[green]{prog} "anything"[/green]            capture a quick note
-[green]{prog} "text" --encrypt[/green]      capture an encrypted note
-[green]{prog} "text" --remind "tomorrow 9am"[/green]  attach a reminder
-[green]{prog} remind "question"[/green]     AI-assisted recall
-[green]{prog} search "query"[/green]        full-text search
-[green]{prog} list[/green]                  list recent notes
-[green]{prog} delete <id>[/green]           delete a note
-[green]{prog} config show|set|reset[/green] manage configuration
-[green]{prog} models[/green]              list models for the current provider
-[green]{prog} notify-pending[/green]        deliver due reminders
-[green]{prog} install-notifier[/green]      install + enable the systemd reminder timer
-[green]{prog} uninstall-notifier[/green]    remove the systemd reminder timer
-[green]{prog} tui[/green]                   launch the TUI
-
-Run with no arguments to open the TUI.
-"""
+        "[bold]Better Dontforget[/bold] — quick personal memory dumps with "
+        "optional AI, reminders, and encryption.\n"
     )
+    console.print("[bold]USAGE[/bold]")
+    console.print(
+        f"  {prog} [OPTIONS] [TEXT]            capture a quick note (opens $EDITOR if TEXT omitted)"
+    )
+    console.print(f"  {prog} [OPTIONS] COMMAND [ARGS]   run a command\n")
+
+    console.print("[bold]OPTIONS[/bold]")
+    _help_rows(
+        ("--encrypt", "capture an encrypted note (prompts for passphrase)"),
+        ("--passphrase <p>", "passphrase for --encrypt (non-interactive)"),
+        ("--remind <spec>", 'attach a reminder, e.g. "tomorrow 9am" or "in 2 hours"'),
+        ("--color", "force ANSI colors (e.g. when piping)"),
+        ("--no-color", "disable ANSI colors"),
+        ("-h, --help", "show this help"),
+        ("-v, --version", "show version"),
+    )
+
+    console.print("\n[bold]COMMANDS[/bold]")
+    _help_rows(
+        ("remind, ask, q <q>", "AI-assisted recall over your notes"),
+        ("search, find <q>", "full-text search (no AI)"),
+        ("list, ls [n]", "list recent notes (default 50)"),
+        ("delete, del, rm <id>", "delete a note by id"),
+        ("config show|set|reset <key> [val]", "manage configuration (secrets masked)"),
+        ("models", "list models for the current provider"),
+        ("notify-pending", "deliver due reminders now (one-shot)"),
+        ("install-notifier", "install + enable the systemd reminder timer"),
+        ("uninstall-notifier", "remove the systemd reminder timer"),
+        ("tui", "launch the TUI (also the default with no arguments)"),
+    )
+    console.print("\nRun with no arguments to open the TUI.")
 
 
 def main(argv: list[str] | None = None) -> int:
